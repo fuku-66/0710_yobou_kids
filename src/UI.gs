@@ -10,7 +10,10 @@ function onOpen() {
       .addItem('子供の情報を削除', 'showDeleteChildDialog'))
     .addSubMenu(ui.createMenu('カレンダー')
       .addItem('カレンダーと同期', 'syncScheduleToCalendar')
-      .addItem('カレンダー設定', 'showCalendarSettings'))
+      .addItem('カレンダー設定', 'showCalendarSettings')
+      .addItem('カレンダー自動更新を設定', 'setupCalendarTriggerWithConfirmation')
+      .addSeparator()
+      .addItem('カレンダーのURLを取得', 'getCalendarUrl'))
     .addItem('設定', 'showSettings')
     .addItem('使い方', 'showHelp');
   menu.addToUi();
@@ -117,6 +120,31 @@ function saveCalendarSettings(duration) {
 
   // 設定を保存したら自動的にカレンダーと同期
   syncScheduleToCalendar();
+}
+
+/**
+ * カレンダートリガー設定の確認ダイアログを表示
+ */
+function setupCalendarTriggerWithConfirmation() {
+  const ui = SpreadsheetApp.getUi();
+  const response = ui.alert(
+    'カレンダー自動更新の設定',
+    'カレンダーの予定が更新されたとき、自動的にスプレッドシートを更新し、必要に応じてメール通知を送信します。\n\n' +
+    'この機能を有効にしますか？',
+    ui.ButtonSet.YES_NO
+  );
+  
+  if (response === ui.Button.YES) {
+    setupCalendarTrigger();
+    ui.alert(
+      '設定完了',
+      'カレンダー自動更新の設定が完了しました。\n\n' +
+      '今後、以下の動作が自動的に行われます：\n' +
+      '1. カレンダーで予定を登録/更新すると、スプレッドシートの予約日と状態が更新されます\n' +
+      '2. 予定日時が過ぎると、状態が自動的に「済み」に更新され、メール通知が送信されます',
+      ui.ButtonSet.OK
+    );
+  }
 }
 
 // 子供の管理関連の関数

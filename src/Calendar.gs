@@ -224,4 +224,161 @@ function syncScheduleToCalendar() {
       }
     }
   });
+}
+
+/**
+ * カレンダーのイベントが更新されたときのトリガー
+ */
+function onCalendarEventUpdated(event) {
+  const calendarManager = new CalendarManager();
+  const calendar = calendarManager.getOrCreateCalendar();
+  
+  // イベントがこのカレンダーのものでない場合はスキップ
+  if (event.calendarId !== calendar.getId()) return;
+  
+  // イベントタイトルから子供の名前とワクチン名を抽出
+  const match = event.title.match(/^(.+)の予防接種: (.+)$/);
+  if (!match) return;
+  
+  const childName = match[1];
+  const vaccineName = match[2];
+  
+  // スプレッドシートを更新
+  updateScheduleSheet(childName, vaccineName, event);
+}
+
+/**
+ * スプレッドシートの更新
+ */
+function updateScheduleSheet(childName, vaccineName, event) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet();
+  const scheduleSheet = sheet.getSheetByName(`${childName}のスケジュール`);
+  if (!scheduleSheet) return;
+
+  const data = scheduleSheet.getDataRange().getValues();
+  const headerRow = data[0];
+  
+  // 列のインデックスを取得
+  const vaccineNameCol = headerRow.indexOf('ワクチン名');
+  const dateCol = headerRow.indexOf('予約日');
+  const statusCol = headerRow.indexOf('ステータス');
+  const eventIdCol = headerRow.indexOf('カレンダーEventID');
+  
+  if (vaccineNameCol === -1 || dateCol === -1 || statusCol === -1 || eventIdCol === -1) return;
+
+  // イベントの日付が過去の場合は「済み」、未来の場合は「予約済」
+  const now = new Date();
+  const eventDate = new Date(event.start.dateTime);
+  const newStatus = eventDate < now ? '済み' : '予約済';
+
+  // 該当する行を探して更新
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][vaccineNameCol] === vaccineName && data[i][eventIdCol] === event.id) {
+      scheduleSheet.getRange(i + 1, dateCol + 1).setValue(eventDate);
+      scheduleSheet.getRange(i + 1, statusCol + 1).setValue(newStatus);
+      
+      // 接種済みの場合はメール通知
+      if (newStatus === '済み') {
+        sendVaccinationCompletionEmail(childName, vaccineName, eventDate);
+      }
+      break;
+    }
+  }
+}
+
+/**
+ * 接種完了メールの送信
+ */
+function sendVaccinationCompletionEmail(childName, vaccineName, date) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet();
+  const settingsSheet = sheet.getSheetByName('設定');
+  if (!settingsSheet) return;
+
+  // メールアドレスの取得
+  const data = settingsSheet.getDataRange().getValues();
+  let emailAddresses = [];
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === 'メールアドレス' && data[i][1]) {
+      emailAddresses.push(data[i][1]);
+    }
+  }
+
+  if (emailAddresses.length === 0) return;
+
+  // メール本文の作成
+  const formattedDate = Utilities.formatDate(date, 'Asia/Tokyo', 'yyyy年M月d日');
+  const subject = `【予防接種完了】${childName}の${vaccineName}`;
+  const body = `
+${childName}の${vaccineName}の接種が完了しました。
+
+接種日: ${formattedDate}
+
+スプレッドシートの状態を「済み」に更新しました。
+次回の予防接種の予定も確認してください。
+
+このメールは自動送信されています。
+`;
+
+  // メール送信
+  emailAddresses.forEach(email => {
+    try {
+      GmailApp.sendEmail(email, subject, body);
+    } catch (e) {
+      console.error('メール送信に失敗しました:', e);
+    }
+  });
+}
+
+/**
+ * カレンダートリガーの設定
+ */
+function setupCalendarTrigger() {
+  const calendarManager = new CalendarManager();
+  const calendar = calendarManager.getOrCreateCalendar();
+  
+  // 既存のトリガーを削除
+  const triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(trigger => {
+    if (trigger.getHandlerFunction() === 'onCalendarEventUpdated') {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
+  
+  // 新しいトリガーを設定
+  ScriptApp.newTrigger('onCalendarEventUpdated')
+    .forCalendar(calendar.getId())
+    .onEventUpdated()
+    .create();
+}
+
+/**
+ * カレンダーのURLを取得
+ */
+function getCalendarUrl() {
+  const calendarManager = new CalendarManager();
+  const calendar = calendarManager.getOrCreateCalendar();
+  
+  try {
+    // カレンダーのURLを取得
+    const calendarId = calendar.getId();
+    const encodedCalendarId = encodeURIComponent(calendarId);
+    const url = `https://calendar.google.com/calendar/embed?src=${encodedCalendarId}`;
+    
+    // UIに表示
+    const ui = SpreadsheetApp.getUi();
+    ui.alert(
+      'カレンダーURL',
+      `以下のURLからカレンダーにアクセスできます：\n\n${url}\n\n` +
+      'このURLを共有すると、他の人もカレンダーを閲覧できます。\n' +
+      '※ カレンダーの編集権限は共有されません。',
+      ui.ButtonSet.OK
+    );
+  } catch (e) {
+    console.error('カレンダーURLの取得に失敗しました:', e);
+    SpreadsheetApp.getUi().alert(
+      'エラー',
+      'カレンダーURLの取得に失敗しました。',
+      SpreadsheetApp.getUi().ButtonSet.OK
+    );
+  }
 } 
