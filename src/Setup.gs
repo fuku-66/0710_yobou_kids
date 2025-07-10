@@ -119,4 +119,105 @@ function setupTriggers() {
     .atHour(9)
     .everyDays(1)
     .create();
+}
+
+/**
+ * 設定シートを作成または更新
+ */
+function setupSettingsSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('設定');
+  
+  if (!sheet) {
+    sheet = ss.insertSheet('設定');
+  }
+  
+  // ヘッダー行の設定
+  const headers = [['項目', '値', '説明']];
+  const headerRange = sheet.getRange(1, 1, 1, 3);
+  headerRange.setValues(headers);
+  headerRange.setBackground('#f3f3f3');
+  headerRange.setFontWeight('bold');
+  
+  // 設定項目の定義
+  const settings = [
+    // メール通知設定
+    ['📧 メール通知設定', '', ''],
+    ['メール通知', 'ON', 'メール通知のON/OFF'],
+    ['メールアドレス', '', '通知先のメールアドレス（複数の場合は改行で区切る）'],
+    
+    // リマインド設定
+    ['⏰ リマインド設定', '', ''],
+    ['全年齢のリマインド', '1ヶ月前', 'すべての予防接種の通知タイミング'],
+    ['1歳未満のリマインド', '1週間前', '1歳未満の予防接種の通知タイミング'],
+    ['2歳以降のリマインド', '3ヶ月前', '2歳以降の予防接種の通知タイミング'],
+    
+    // カレンダー設定
+    ['📅 カレンダー設定', '', ''],
+    ['カレンダーID', '', 'Googleカレンダーの連携用ID'],
+    ['カレンダー予定の長さ', '60', '予定の長さ（分）'],
+    
+    // 表示設定
+    ['👀 表示設定', '', ''],
+    ['任意接種の表示', 'ON', '任意接種の表示/非表示'],
+    ['同時接種の推奨表示', 'ON', '同時接種可能な組み合わせの表示']
+  ];
+  
+  // 設定値の入力
+  const settingsRange = sheet.getRange(2, 1, settings.length, 3);
+  settingsRange.setValues(settings);
+  
+  // 列幅の設定
+  sheet.setColumnWidth(1, 200);  // 項目
+  sheet.setColumnWidth(2, 150);  // 値
+  sheet.setColumnWidth(3, 300);  // 説明
+  
+  // データ入力規則の設定
+  const onOffRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(['ON', 'OFF'], true)
+    .build();
+  
+  const reminderRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList([
+      '3日前',
+      '1週間前',
+      '2週間前',
+      '1ヶ月前',
+      '2ヶ月前',
+      '3ヶ月前'
+    ], true)
+    .build();
+  
+  const durationRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(['30', '60', '90', '120'], true)
+    .build();
+  
+  // ON/OFF選択肢の設定
+  sheet.getRange('B2').setDataValidation(onOffRule);  // メール通知
+  sheet.getRange('B12').setDataValidation(onOffRule); // 任意接種の表示
+  sheet.getRange('B13').setDataValidation(onOffRule); // 同時接種の推奨表示
+  
+  // リマインド時期の選択肢
+  sheet.getRange('B5').setDataValidation(reminderRule); // 全年齢
+  sheet.getRange('B6').setDataValidation(reminderRule); // 1歳未満
+  sheet.getRange('B7').setDataValidation(reminderRule); // 2歳以降
+  
+  // カレンダー予定の長さの選択肢
+  sheet.getRange('B10').setDataValidation(durationRule);
+  
+  // セクション見出しの書式設定
+  const sectionRows = [2, 5, 9, 12]; // セクション見出しの行番号
+  sectionRows.forEach(row => {
+    sheet.getRange(row, 1).setFontWeight('bold');
+    sheet.getRange(row, 1, 1, 3).setBackground('#e8eaf6');
+  });
+  
+  // 説明セルの書式設定
+  const lastRow = settings.length + 1;
+  sheet.getRange(2, 3, lastRow - 1, 1).setWrap(true);
+  
+  // シートの保護
+  const protection = sheet.protect();
+  protection.setDescription('設定シートの保護');
+  protection.setWarningOnly(true);
 } 
