@@ -252,4 +252,51 @@ function updateScheduleSheet(sheet, childName, birthday) {
   
   // 同時接種のグループを再設定
   groupSimultaneousVaccinations(sheet, 4, values.length);
+}
+
+/**
+ * 月齢を年齢表示に変換
+ * @param {number} months 月齢
+ * @return {string} 変換後の表示
+ */
+function formatAgeDisplay(months) {
+  if (months <= 12) {
+    return `生後${months}ヶ月`;
+  } else {
+    const years = Math.floor(months / 12);
+    const remainingMonths = months % 12;
+    if (remainingMonths === 0) {
+      return `${years}歳`;
+    } else {
+      return `${years}歳${remainingMonths}ヶ月`;
+    }
+  }
+}
+
+/**
+ * デフォルトの予防接種データを取得
+ */
+function getDefaultVaccineData() {
+  return [
+    ['ヒブ', '3回目', '生後4ヶ月', '', '', '未接種', '', '', '定期'],
+    ['ヒブ', '4回目', formatAgeDisplay(12), '', '', '未接種', '', '', '定期'],
+    ['小児用肺炎球菌', '1回目', '生後5ヶ月', '', '', '未接種', '', '', '定期'],
+    ['小児用肺炎球菌', '1期', formatAgeDisplay(12), '', '', '未接種', '', '', '定期'],
+    ['B型肝炎', '1回目', formatAgeDisplay(12), '', '', '未接種', '', '', '定期'],
+    ['B型肝炎', '2回目', formatAgeDisplay(15), '', '', '未接種', '', '', '定期'],
+    ['ロタウイルス', '1回目', formatAgeDisplay(12), '', '', '未接種', '', '', '任意'],
+    ['ロタウイルス', '2回目', formatAgeDisplay(24), '', '', '未接種', '', '', '任意'],
+    ['四種混合', '追加接種', formatAgeDisplay(18), '', '', '未接種', '', '', '定期'],
+    ['麻しん・風しん混合', '追加接種', formatAgeDisplay(18), '', '', '未接種', '', '', '定期'],
+    ['水痘', '追加接種', formatAgeDisplay(18), '', '', '未接種', '', '', '定期'],
+    ['日本脳炎', '1期初回', formatAgeDisplay(36), '', '', '未接種', '', '', '定期'],
+    ['日本脳炎', '1期初回', formatAgeDisplay(37), '', '', '未接種', '', '', '定期'],
+    ['日本脳炎', '1期追加', formatAgeDisplay(48), '', '', '未接種', '', '', '定期'],
+    ['日本脳炎', '2期', formatAgeDisplay(60), '', '', '未接種', '', '', '定期'],
+    ['二種混合', '2期', formatAgeDisplay(108), '', '', '未接種', '', '', '定期'],
+    ['日本脳炎', '2期', formatAgeDisplay(132), '', '', '未接種', '', '', '定期'],
+    ['HPV', '1回目', formatAgeDisplay(132), '', '', '未接種', '', '', '定期'],
+    ['HPV', '2回目', formatAgeDisplay(138), '', '', '未接種', '', '', '定期'],
+    ['インフルエンザ', '毎年1回', '生後6ヶ月', '', '', '未接種', '', '', '任意']
+  ];
 } 
