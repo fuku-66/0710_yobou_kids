@@ -3,18 +3,120 @@ function onOpen() {
   const ui = SpreadsheetApp.getUi();
   
   // カスタムメニューを作成
-  ui.createMenu('予防接種管理')
-    .addItem('新規スケジュール作成', 'createNewVaccinationSheet')
-    .addSeparator()
+  const menu = ui.createMenu('予防接種管理')
     .addSubMenu(ui.createMenu('子供の管理')
-      .addItem('新しい子供を追加', 'addNewChild')
-      .addItem('子供の情報を編集', 'editChild')
-      .addItem('子供の情報を削除', 'deleteChild'))
-    .addSeparator()
+      .addItem('新しい子供を追加', 'showAddChildDialog')
+      .addItem('子供の情報を編集', 'showEditChildDialog')
+      .addItem('子供の情報を削除', 'showDeleteChildDialog'))
+    .addSubMenu(ui.createMenu('カレンダー')
+      .addItem('カレンダーと同期', 'syncScheduleToCalendar')
+      .addItem('カレンダー設定', 'showCalendarSettings'))
     .addItem('設定', 'showSettings')
-    .addSeparator()
-    .addItem('使い方', 'showHelp')
-    .addToUi();
+    .addItem('使い方', 'showHelp');
+  menu.addToUi();
+}
+
+/**
+ * カレンダー設定ダイアログを表示
+ */
+function showCalendarSettings() {
+  const html = HtmlService.createHtmlOutput(`
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        line-height: 1.6;
+      }
+      .section {
+        margin-bottom: 20px;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      .section-title {
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+      }
+      select {
+        width: 200px;
+        padding: 5px;
+        margin-bottom: 10px;
+      }
+      .button-container {
+        margin-top: 20px;
+        text-align: center;
+      }
+      button {
+        padding: 8px 16px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+    </style>
+    <div class="section">
+      <div class="section-title">⏰ カレンダー設定</div>
+      <label for="duration">予定の長さ：</label>
+      <select id="duration">
+        <option value="30">30分</option>
+        <option value="60" selected>1時間</option>
+        <option value="90">1時間30分</option>
+        <option value="120">2時間</option>
+      </select>
+    </div>
+    <div class="button-container">
+      <button onclick="saveSettings()">保存</button>
+    </div>
+    <script>
+      function saveSettings() {
+        const duration = document.getElementById('duration').value;
+        google.script.run
+          .withSuccessHandler(function() {
+            google.script.host.close();
+          })
+          .saveCalendarSettings(duration);
+      }
+    </script>
+  `)
+  .setWidth(400)
+  .setHeight(300);
+  
+  SpreadsheetApp.getUi().showModalDialog(html, 'カレンダー設定');
+}
+
+/**
+ * カレンダー設定を保存
+ */
+function saveCalendarSettings(duration) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet();
+  const settingsSheet = sheet.getSheetByName('設定');
+  if (!settingsSheet) return;
+
+  const data = settingsSheet.getDataRange().getValues();
+  let found = false;
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === 'カレンダー予定の長さ') {
+      settingsSheet.getRange(i + 1, 2).setValue(duration);
+      found = true;
+      break;
+    }
+  }
+
+  if (!found) {
+    const lastRow = settingsSheet.getLastRow();
+    settingsSheet.getRange(lastRow + 1, 1, 1, 2).setValues([['カレンダー予定の長さ', duration]]);
+  }
+
+  // 設定を保存したら自動的にカレンダーと同期
+  syncScheduleToCalendar();
 }
 
 // 子供の管理関連の関数
