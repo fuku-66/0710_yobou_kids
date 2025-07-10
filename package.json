@@ -1,0 +1,13 @@
+{
+  "name": "0710_yobou_child",
+  "version": "1.0.0",
+  "description": "Google Apps Script (GAS) を使用した予防接種管理ツールです。子供の予防接種スケジュールを効率的に管理し、適切なタイミングでリマインダーを送信します。",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}

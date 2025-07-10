@@ -1,0 +1,25 @@
+# Google Apps Script local development files
+.clasp.json
+creds.json
+token.json
+node_modules/
+.DS_Store
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock 
